@@ -33,6 +33,17 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
             {".svg", "no-cache"}
         };
 
+        /// <summary>
+        ///  Enum describing the states of a given package on a feed
+        /// </summary>
+        public enum PackageFeedStatus
+        {
+            DoesNotExist,
+            ExistsAndIdenticalToLocal,
+            ExistsAndDifferent,
+            Unknown
+        }
+
         // Save the credential so we can sign SAS tokens
         private readonly StorageSharedKeyCredential _credential;
 

@@ -34,17 +34,6 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             };
 
         /// <summary>
-        ///  Enum describing the states of a given package on a feed
-        /// </summary>
-        public enum PackageFeedStatus
-        {
-            DoesNotExist,
-            ExistsAndIdenticalToLocal,
-            ExistsAndDifferent,
-            Unknown
-        }
-
-        /// <summary>
         ///     Compare a local stream and a remote stream for quality
         /// </summary>
         /// <param name="localFileStream">Local stream</param>
