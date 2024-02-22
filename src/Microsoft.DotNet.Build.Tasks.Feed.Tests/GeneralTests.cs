@@ -13,6 +13,7 @@ using Microsoft.DotNet.Build.Tasks.Feed.Model;
 using Microsoft.DotNet.Build.Tasks.Feed.Tests.TestDoubles;
 using Xunit;
 using static Microsoft.DotNet.Build.Tasks.Feed.GeneralUtils;
+using static Microsoft.DotNet.Build.CloudTestTasks.AzureStorageUtils;
 
 namespace Microsoft.DotNet.Build.Tasks.Feed.Tests
 {
