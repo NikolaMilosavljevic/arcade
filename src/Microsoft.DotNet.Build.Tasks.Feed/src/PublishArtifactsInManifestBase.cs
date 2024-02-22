@@ -1376,7 +1376,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             )
         {
             // Using these callbacks we can mock up functionality when testing.
-            CompareLocalPackageToFeedPackageCallBack ??= GeneralUtils.CompareLocalPackageToFeedPackage;
+            CompareLocalPackageToFeedPackageCallBack ??= AzureStorageUtils.CompareLocalPackageToFeedPackage;
             RunProcessAndGetOutputsCallBack ??= GeneralUtils.RunProcessAndGetOutputsAsync;
             ProcessExecutionResult nugetResult = null;
             var packageStatus = GeneralUtils.PackageFeedStatus.Unknown;
