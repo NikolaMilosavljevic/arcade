@@ -124,7 +124,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.Tests
 
             var httpClient = FakeHttpClient.WithResponses(response);
 
-            var result = await GeneralUtils.CompareLocalPackageToFeedPackage(
+            var result = await AzureStorageUtils.CompareLocalPackageToFeedPackage(
                 localPackagePath,
                 packageContentUrl,
                 httpClient,
@@ -165,7 +165,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed.Tests
 
             var httpClient = FakeHttpClient.WithResponses(responses);
 
-            await GeneralUtils.CompareLocalPackageToFeedPackage(
+            await AzureStorageUtils.CompareLocalPackageToFeedPackage(
                 localPackagePath,
                 packageContentUrl,
                 httpClient,
