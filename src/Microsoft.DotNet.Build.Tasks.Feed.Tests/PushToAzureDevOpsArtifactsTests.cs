@@ -12,7 +12,6 @@ using Microsoft.DotNet.VersionTools.BuildManifest.Model;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Moq;
-using NuGet.Packaging.Core;
 using NuGet.Versioning;
 using System.Collections.Generic;
 using System.IO;
