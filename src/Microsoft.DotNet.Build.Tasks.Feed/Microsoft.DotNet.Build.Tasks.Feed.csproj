@@ -57,6 +57,8 @@
     <Compile Remove="src\AzureStorageContainerAssetPublisher.cs" />
     <Compile Remove="src\AzureStorageExtensions.cs" />
     <Compile Remove="src\BlobFeedAction.cs" />
+    <Compile Remove="src\common\AssetComparer.cs" />
+    <Compile Remove="src\common\AzureConnectionStringBuildTask.cs" />
     <Compile Remove="src\common\AzureStorageUtils.cs" />
     <Compile Remove="src\common\CreateAzureContainer.cs" />
     <Compile Remove="src\common\CreateAzureContainerIfNotExists.cs" />
@@ -73,6 +75,7 @@
     <Compile Remove="src\PublishArtifactsInManifestV3.cs" />
     <Compile Remove="src\PublishSignedAssets.cs" />
     <Compile Remove="src\PublishSymbolsHelper.cs" />
+    <Compile Remove="src\IAssetPublisher.cs" />
   </ItemGroup>
 
 </Project>
