@@ -4,7 +4,9 @@
 using Microsoft.Arcade.Common;
 using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
+#if !DOTNET_BUILD_SOURCE_ONLY
 using Microsoft.DotNet.Build.CloudTestTasks;
+#endif
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

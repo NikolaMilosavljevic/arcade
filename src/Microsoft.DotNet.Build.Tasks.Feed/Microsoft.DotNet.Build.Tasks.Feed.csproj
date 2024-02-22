@@ -9,6 +9,10 @@
     <PackageType>MSBuildSdk</PackageType>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(DotNetBuildSourceOnly)' == 'true'">
+    <DefineConstants>$(DefineConstants);DOTNET_BUILD_SOURCE_ONLY</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Azure.Core" Condition="'$(DotNetBuildSourceOnly)' != 'true'" />
     <PackageReference Include="Azure.Storage.Blobs" Condition="'$(DotNetBuildSourceOnly)' != 'true'" />
