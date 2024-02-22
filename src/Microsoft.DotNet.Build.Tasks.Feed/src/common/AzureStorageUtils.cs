@@ -8,7 +8,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 using Microsoft.Arcade.Common;
-using Microsoft.Build.Utilities;
+using MsBuildUtils = Microsoft.Build.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -202,7 +202,7 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
             string localPackageFullPath,
             string packageContentUrl,
             HttpClient client,
-            TaskLoggingHelper log)
+            MsBuildUtils.TaskLoggingHelper log)
         {
             return await CompareLocalPackageToFeedPackage(
                 localPackageFullPath,
@@ -234,7 +234,7 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
             string localPackageFullPath,
             string packageContentUrl,
             HttpClient client,
-            TaskLoggingHelper log,
+            MsBuildUtils.TaskLoggingHelper log,
             IRetryHandler retryHandler)
         {
             log.LogMessage($"Getting package content from {packageContentUrl} and comparing to {localPackageFullPath}");
