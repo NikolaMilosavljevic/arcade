@@ -80,6 +80,7 @@
     <Compile Remove="src\PublishSignedAssets.cs" />
     <Compile Remove="src\PublishSymbolsHelper.cs" />
     <Compile Remove="src\IAssetPublisher.cs" />
+    <Compile Remove="src\CreateAzureDevOpsFeed.cs" />
   </ItemGroup>
 
 </Project>
