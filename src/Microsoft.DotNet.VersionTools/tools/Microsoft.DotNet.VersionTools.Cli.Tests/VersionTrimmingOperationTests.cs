@@ -4,7 +4,6 @@
 using FluentAssertions;
 using Microsoft.DotNet.VersionTools.Automation;
 using Moq;
-using NuGet.Packaging.Core;
 using NuGet.Versioning;
 using System.IO;
 using System;

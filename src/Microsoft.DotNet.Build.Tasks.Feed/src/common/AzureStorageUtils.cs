@@ -8,6 +8,7 @@ using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using Azure.Storage.Sas;
 using Microsoft.Arcade.Common;
+using Microsoft.Build.Framework;
 using MsBuildUtils = Microsoft.Build.Utilities;
 using System;
 using System.Collections.Generic;
@@ -209,7 +210,7 @@ namespace Microsoft.DotNet.Build.CloudTestTasks
                 packageContentUrl,
                 client,
                 log,
-                CreateDefaultRetryHandler());
+                GeneralUtils.CreateDefaultRetryHandler());
         }
 
         /// <summary>

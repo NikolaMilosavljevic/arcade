@@ -1377,10 +1377,10 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
             )
         {
             // Using these callbacks we can mock up functionality when testing.
-            CompareLocalPackageToFeedPackageCallBack ??= AzureStorageUtils.CompareLocalPackageToFeedPackage;
+            CompareLocalPackageToFeedPackageCallBack ??= CompareLocalPackageToFeedPackage;
             RunProcessAndGetOutputsCallBack ??= GeneralUtils.RunProcessAndGetOutputsAsync;
             ProcessExecutionResult nugetResult = null;
-            var packageStatus = AzureStorageUtils.PackageFeedStatus.Unknown;
+            var packageStatus = PackageFeedStatus.Unknown;
 
             try
             {
@@ -1396,7 +1396,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                     if (nugetResult.ExitCode == 0)
                     {
                         // We have just pushed this package so we know it exists and is identical to our local copy
-                        packageStatus = AzureStorageUtils.PackageFeedStatus.ExistsAndIdenticalToLocal;
+                        packageStatus = PackageFeedStatus.ExistsAndIdenticalToLocal;
                         break;
                     }
 
@@ -1407,12 +1407,12 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
 
                     switch (packageStatus)
                     {
-                        case AzureStorageUtils.PackageFeedStatus.ExistsAndIdenticalToLocal:
+                        case PackageFeedStatus.ExistsAndIdenticalToLocal:
                             {
                                 Log.LogMessage(MessageImportance.Normal, $"Package '{localPackageLocation}' already exists on '{feedConfig.TargetURL}' but has the same content; skipping push");
                                 break;
                             }
-                        case AzureStorageUtils.PackageFeedStatus.ExistsAndDifferent:
+                        case PackageFeedStatus.ExistsAndDifferent:
                             {
                                 Log.LogError($"Package '{localPackageLocation}' already exists on '{feedConfig.TargetURL}' with different content.");
                                 break;
@@ -1426,11 +1426,11 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                             }
                     }
                 }
-                while (packageStatus != AzureStorageUtils.PackageFeedStatus.ExistsAndIdenticalToLocal && // Success
-                       packageStatus != AzureStorageUtils.PackageFeedStatus.ExistsAndDifferent &&        // Give up: Non-retriable error
+                while (packageStatus != PackageFeedStatus.ExistsAndIdenticalToLocal && // Success
+                       packageStatus != PackageFeedStatus.ExistsAndDifferent &&        // Give up: Non-retriable error
                        attemptIndex <= MaxRetryCount);                                              // Give up: Too many retries
 
-                if (packageStatus != AzureStorageUtils.PackageFeedStatus.ExistsAndIdenticalToLocal)
+                if (packageStatus != PackageFeedStatus.ExistsAndIdenticalToLocal)
                 {
                     Log.LogError($"Failed to publish package '{id}@{version}' to '{feedConfig.TargetURL}' after {MaxRetryCount} attempts. (Final status: {packageStatus})");
                 }
@@ -1444,7 +1444,7 @@ namespace Microsoft.DotNet.Build.Tasks.Feed
                 Log.LogError($"Unexpected exception pushing package '{id}@{version}': {e.Message}");
             }
 
-            if (packageStatus != AzureStorageUtils.PackageFeedStatus.ExistsAndIdenticalToLocal && nugetResult?.ExitCode != 0)
+            if (packageStatus != PackageFeedStatus.ExistsAndIdenticalToLocal && nugetResult?.ExitCode != 0)
             {
                 Log.LogError($"Output from nuget.exe: {Environment.NewLine}StdOut:{Environment.NewLine}{nugetResult.StandardOut}{Environment.NewLine}StdErr:{Environment.NewLine}{nugetResult.StandardError}");
             }
