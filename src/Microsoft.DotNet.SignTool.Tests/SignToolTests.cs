@@ -33,6 +33,7 @@ namespace Microsoft.DotNet.SignTool.Tests
             {".psc1",   new List<SignInfo>{ new SignInfo("PSCCertificate") } },
             {".dylib", new List<SignInfo>{ new SignInfo("DylibCertificate") } },
             {".deb", new List<SignInfo>{ new SignInfo("LinuxSign") } },
+            {".rpm", new List<SignInfo>{ new SignInfo("LinuxSign") } },
             {".dll",  new List<SignInfo>{ new SignInfo("Microsoft400") } }, // lgtm [cs/common-default-passwords] Safe, these are certificate names
             {".exe",  new List<SignInfo>{ new SignInfo("Microsoft400") } }, // lgtm [cs/common-default-passwords] Safe, these are certificate names
             {".msi",  new List<SignInfo>{ new SignInfo("Microsoft400") } }, // lgtm [cs/common-default-passwords] Safe, these are certificate names
@@ -1343,7 +1344,6 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.deb"
             ValidateFileSignInfos(itemsToSign, strongNameSignInfo, fileSignInfo, s_fileExtensionSignInfo, new[]
             {
                 "File 'mscorlib.dll' TargetFramework='.NETCoreApp,Version=v10.0' Certificate='Microsoft400'",
-                "File 'data.cpio.gz' Certificate=''",
                 "File 'test.rpm' Certificate='LinuxSign'"
             });
 

@@ -12,7 +12,6 @@ using System.Linq;
 using System.Data;
 using System.Diagnostics;
 using Microsoft.DotNet.Build.Tasks.Installers;
-using System.Runtime.InteropServices;
 
 
 #if NET472
@@ -124,10 +123,10 @@ namespace Microsoft.DotNet.SignTool
 #if NET472
                 throw new NotImplementedException("RPM signing is not supported on .NET Framework");
 #else
-                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                {
-                    throw new NotImplementedException("RPM signing is only supported on Linux platform");
-                }
+                //if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                //{
+                //    throw new NotImplementedException("RPM signing is only supported on Linux platform");
+                //}
 
                 RepackRpmContainer(log, tempDir);
 #endif
@@ -554,9 +553,14 @@ namespace Microsoft.DotNet.SignTool
             using var stream = File.Open(archivePath, FileMode.Open);
 
             RpmPackage rpmPackage = RpmPackage.Read(stream);
+
             using var dataStream = File.OpenWrite(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
-            rpmPackage.ArchiveStream.CopyTo(dataStream);
-            yield return ("data.cpio", dataStream, dataStream.Length);
+            using var archive = new CpioReader(rpmPackage.ArchiveStream, leaveOpen: false);
+
+            while (archive.GetNextEntry() is CpioEntry entry)
+            {
+                yield return (entry.Name, entry.DataStream, entry.DataStream.Length);
+            }
         }
 
         private void RepackRpmContainer(TaskLoggingHelper log, string tempDir)
