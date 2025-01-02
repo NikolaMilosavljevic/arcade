@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="Microsoft.DotNet.SignTool" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="build/**/*.*"
           Pack="true"
           PackagePath="build" />

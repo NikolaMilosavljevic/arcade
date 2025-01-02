@@ -1324,6 +1324,50 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.deb"
 
             ValidateProducedDebContent(Path.Combine(_tmpDir, "test.deb"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
         }
+
+        [Fact]
+        public void CheckRpmSigning()
+        {
+            // List of files to be considered for signing
+            var itemsToSign = new ITaskItem[]
+            {
+                new TaskItem(GetResourcePath("test.rpm"))
+            };
+
+            // Default signing information
+            var strongNameSignInfo = new Dictionary<string, List<SignInfo>>();
+
+            // Overriding information
+            var fileSignInfo = new Dictionary<ExplicitCertificateKey, string>();
+
+            ValidateFileSignInfos(itemsToSign, strongNameSignInfo, fileSignInfo, s_fileExtensionSignInfo, new[]
+            {
+                "File 'mscorlib.dll' TargetFramework='.NETCoreApp,Version=v10.0' Certificate='Microsoft400'",
+                "File 'data.cpio.gz' Certificate=''",
+                "File 'test.rpm' Certificate='LinuxSign'"
+            });
+
+            ValidateGeneratedProject(itemsToSign, strongNameSignInfo, fileSignInfo, s_fileExtensionSignInfo, new[]
+            {
+$@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "ContainerSigning", "1", "./usr/local/bin/mscorlib.dll"))}"">
+  <Authenticode>Microsoft400</Authenticode>
+</FilesToSign>",
+$@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.rpm"))}"">
+  <Authenticode>LinuxSign</Authenticode>
+</FilesToSign>"
+            });
+
+            var expectedFilesOriginalHashes = new (string, string)[]
+            {
+                ("usr/local/bin/hello", "644981BBD6F4ED1B3CF68CD0F47981AA"),
+                ("usr/local/bin/mscorlib.dll", "B80EEBA2B8616B7C37E49B004D69BBB7")
+            };
+            string[] signableFiles = ["usr/local/bin/mscorlib.dll"];
+            string expectedControlFileContent = "Package: test\nVersion: 1.0\nSection: base\nPriority: optional\nArchitecture: all\n";
+            expectedControlFileContent += "Maintainer: Arcade <test@example.com>\nInstalled-Size: 49697\nDescription: A simple test package\n This is a simple generated .deb package for testing purposes.\n";
+
+            //ValidateProducedDebContent(Path.Combine(_tmpDir, "test.deb"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
+        }
 #endif
 
         [Fact]
