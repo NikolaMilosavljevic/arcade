@@ -568,15 +568,29 @@ namespace Microsoft.DotNet.SignTool
             {
                 RpmPackage rpmPackage = RpmPackage.Read(stream);
                 headerEntries = rpmPackage.Header.Entries;
-
-
             }
 
-            // TODO
-            // Unpack original package - create the layout
+            string layout = Path.Combine(tempDir, Guid.NewGuid().ToString().Split('-')[0]);
+            Directory.CreateDirectory(layout);
 
-            // TODO
-            // Replace resigned files in layout - from NestedParts
+            // Unpack original package - create the layout
+            foreach (var (relativePath, content, contentSize) in ReadRpmContainerEntries(FileSignInfo.FullPath))
+            {
+                string outputPath = Path.Combine(layout, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+                if (content != null)
+                {
+                    using FileStream outputFileStream = File.Create(outputPath);
+                    content.CopyTo(outputFileStream);
+                }
+            }
+
+            // Update signed files in layout
+            foreach (var signedPart in NestedParts.Values)
+            {
+                File.Copy(signedPart.FileSignInfo.FullPath, Path.Combine(layout, signedPart.RelativeName), overwrite: true);
+            }
 
             // Run two Linux commands to produce payload.cpio and get file types
 
@@ -607,8 +621,8 @@ namespace Microsoft.DotNet.SignTool
 
             string[] requireNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireName).Value;
             string[] requireVersions = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireVersion).Value;
-            // Conflicts
-            // OwnedDirectories
+            // TODO: Conflicts
+            // TODO: OwnedDirectories
             string[] changelogLines = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ChangelogText).Value;
             // Scripts
             ITaskItem[] scripts = [];
@@ -629,8 +643,8 @@ namespace Microsoft.DotNet.SignTool
                 Description = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Description).Value.ToString(),
                 PackageUrl = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Url).Value.ToString(),
                 Requires = requireNames != null ? requireNames.Where(t => !t.StartsWith("rpmlib")).Zip(requireVersions, (name, version) => new TaskItem($"{name} {version}")).ToArray() : [],
-                // Conflicts
-                // OwnedDirectories
+                // TODO: Conflicts
+                // TODO: OwnedDirectories
                 ChangelogLines = changelogLines != null ? changelogLines.Select(c => new TaskItem(c)).ToArray() : [],
                 Scripts = scripts,
                 Payload = payload,
@@ -641,8 +655,6 @@ namespace Microsoft.DotNet.SignTool
             {
                 throw new Exception($"Failed to create RPM package: {FileSignInfo.FileName}");
             }
-
-
         }
 
         private static string RpmPackageArchitectureToDotNet(string rpmPackageArchitecture)
