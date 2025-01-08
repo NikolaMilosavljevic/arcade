@@ -12,6 +12,8 @@ using System.Linq;
 using System.Data;
 using System.Diagnostics;
 using Microsoft.DotNet.Build.Tasks.Installers;
+using System.Runtime.InteropServices;
+
 
 
 #if NET472
@@ -592,39 +594,53 @@ namespace Microsoft.DotNet.SignTool
                 File.Copy(signedPart.FileSignInfo.FullPath, Path.Combine(layout, signedPart.RelativeName), overwrite: true);
             }
 
-            // Run two Linux commands to produce payload.cpio and get file types
-
-            // TODO:
-            // Create payload.cpio file
+            // Create payload.cpio
             string payload = Path.Combine(Path.GetDirectoryName(FileSignInfo.FullPath), "payload.cpio");
-            // From layout root dir, run the command:
-            // find . -depth ! -wholename '.' -print  | cpio -H newc -o --quiet > '<output_path>'
-            // Example:
-            // find . -depth ! -wholename '.' -print  | cpio -H newc -o --quiet > '/src/payload.cpio'
 
-            // TODO:
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.' -print  | cpio -H newc -o --quiet > '{payload}'\"", out string _, layout);
+            }
+            else
+            {
+                // TODO: remove this block and if-statement above before sending PR
+
+                // TESTING:
+                // For Windows testing, we will use a Linux-updated payload.cpio file
+                File.Copy(@"C:\share\sdk.rpm\payload.cs.cpio", payload, overwrite: true);
+            }
+
             // Collect file types for all files in layout
-            // From layout root dir, run the command:
-            // find . -depth ! -wholename '.'  -exec file {} \;
-            // Command output should be captured into array of ITaskItems - one line per item
-            //
-            // Test data:
-            ITaskItem[] rawPayloadFileKinds = [
-                new TaskItem("./usr/local/bin/hello: Bourne-Again shell script, ASCII text executable"),
-                new TaskItem("./usr/local/bin/mscorlib.dll: PE32 executable (DLL) (console) Intel 80386 Mono/.Net assembly, for MS Windows"),
-                new TaskItem("./usr/local/bin: directory"),
-                new TaskItem("./usr/local: directory"),
-                new TaskItem("./usr: directory")
-                ];
+            ITaskItem[] rawPayloadFileKinds;
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.'  -exec file {{}} \\;\"", out string output, layout);
+                rawPayloadFileKinds =
+                    output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                          .Select(t => new TaskItem(t))
+                          .ToArray();
+            }
+            else
+            {
+                // TODO: remove this block and if-statement above before sending PR
 
-            //File.Delete(FileSignInfo.FullPath);
+                // TESTING:
+                // For Windows testing, use static data
+                // Test data:
+                rawPayloadFileKinds = [
+                    new TaskItem("./usr/local/bin/hello: Bourne-Again shell script, ASCII text executable"),
+                    new TaskItem("./usr/local/bin/mscorlib.dll: PE32 executable (DLL) (console) Intel 80386 Mono/.Net assembly, for MS Windows"),
+                    new TaskItem("./usr/local/bin: directory"),
+                    new TaskItem("./usr/local: directory"),
+                    new TaskItem("./usr: directory")
+                    ];
+            }
 
             string[] requireNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireName).Value;
             string[] requireVersions = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireVersion).Value;
-            // TODO: Conflicts
-            // TODO: OwnedDirectories
             string[] changelogLines = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ChangelogText).Value;
-            // Scripts
+            // TODO: Conflicts
+            // TODO: Scripts
             ITaskItem[] scripts = [];
 
             // Create RPM package
@@ -643,9 +659,9 @@ namespace Microsoft.DotNet.SignTool
                 Description = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Description).Value.ToString(),
                 PackageUrl = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Url).Value.ToString(),
                 Requires = requireNames != null ? requireNames.Where(t => !t.StartsWith("rpmlib")).Zip(requireVersions, (name, version) => new TaskItem($"{name} {version}")).ToArray() : [],
-                // TODO: Conflicts
-                // TODO: OwnedDirectories
+                OwnedDirectories = ((string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.DirectoryNames).Value).Select(d => new TaskItem(d)).ToArray(),
                 ChangelogLines = changelogLines != null ? changelogLines.Select(c => new TaskItem(c)).ToArray() : [],
+                // TODO: Conflicts
                 Scripts = scripts,
                 Payload = payload,
                 RawPayloadFileKinds = rawPayloadFileKinds
@@ -672,6 +688,26 @@ namespace Microsoft.DotNet.SignTool
                 "aarch64" => "arm64",
                 _ => rpmPackageArchitecture
             };
+        }
+
+        private static bool RunExternalProcess(string cmd, string args, out string output, string workingDir = null)
+        {
+            ProcessStartInfo psi = new()
+            {
+                FileName = cmd,
+                Arguments = args,
+                RedirectStandardOutput = true,
+                RedirectStandardError = false,
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                WorkingDirectory = workingDir
+            };
+
+            using Process process = Process.Start(psi);
+            output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+
+            return process.ExitCode == 0;
         }
 #endif
     }
