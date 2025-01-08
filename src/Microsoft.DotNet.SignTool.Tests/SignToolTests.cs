@@ -302,7 +302,8 @@ namespace Microsoft.DotNet.SignTool.Tests
         {
             try
             {
-                Directory.Delete(_tmpDir, recursive: true);
+                // TODO: revert this!
+                //Directory.Delete(_tmpDir, recursive: true);
             }
             catch
             {
@@ -1366,7 +1367,7 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.rpm"
             string expectedControlFileContent = "Package: test\nVersion: 1.0\nSection: base\nPriority: optional\nArchitecture: all\n";
             expectedControlFileContent += "Maintainer: Arcade <test@example.com>\nInstalled-Size: 49697\nDescription: A simple test package\n This is a simple generated .deb package for testing purposes.\n";
 
-            //ValidateProducedDebContent(Path.Combine(_tmpDir, "test.deb"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
+            //ValidateProducedRpmContent(Path.Combine(_tmpDir, "test.rpm"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
         }
 #endif
 
