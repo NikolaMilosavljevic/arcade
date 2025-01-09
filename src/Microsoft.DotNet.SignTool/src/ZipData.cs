@@ -565,28 +565,10 @@ namespace Microsoft.DotNet.SignTool
 
         private void RepackRpmContainer(TaskLoggingHelper log, string tempDir)
         {
-            List<RpmHeader<RpmHeaderTag>.Entry> headerEntries;
-            using (var stream = File.Open(FileSignInfo.FullPath, FileMode.Open))
-            {
-                RpmPackage rpmPackage = RpmPackage.Read(stream);
-                headerEntries = rpmPackage.Header.Entries;
-            }
-
+            // Unpack original package - create the layout
             string layout = Path.Combine(tempDir, Guid.NewGuid().ToString().Split('-')[0]);
             Directory.CreateDirectory(layout);
-
-            // Unpack original package - create the layout
-            foreach (var (relativePath, content, contentSize) in ReadRpmContainerEntries(FileSignInfo.FullPath))
-            {
-                string outputPath = Path.Combine(layout, relativePath);
-                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
-
-                if (content != null)
-                {
-                    using FileStream outputFileStream = File.Create(outputPath);
-                    content.CopyTo(outputFileStream);
-                }
-            }
+            ExtractRpmPayloadContents(FileSignInfo.FullPath, layout);
 
             // Update signed files in layout
             foreach (var signedPart in NestedParts.Values)
@@ -636,6 +618,7 @@ namespace Microsoft.DotNet.SignTool
                     ];
             }
 
+            IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = GetRpmHeaderEntries(FileSignInfo.FullPath);
             string[] requireNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireName).Value;
             string[] requireVersions = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireVersion).Value;
             string[] changelogLines = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ChangelogText).Value;
@@ -670,6 +653,27 @@ namespace Microsoft.DotNet.SignTool
             if (!createRpmPackageTask.Execute())
             {
                 throw new Exception($"Failed to create RPM package: {FileSignInfo.FileName}");
+            }
+        }
+
+        internal static IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> GetRpmHeaderEntries(string rpmPackage)
+        {
+            using var stream = File.Open(rpmPackage, FileMode.Open);
+            return RpmPackage.Read(stream).Header.Entries;
+        }
+
+        internal static void ExtractRpmPayloadContents(string rpmPackage, string layout)
+        {
+            foreach (var (relativePath, content, contentSize) in ReadRpmContainerEntries(rpmPackage))
+            {
+                string outputPath = Path.Combine(layout, relativePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+                if (content != null)
+                {
+                    using FileStream outputFileStream = File.Create(outputPath);
+                    content.CopyTo(outputFileStream);
+                }
             }
         }
 
