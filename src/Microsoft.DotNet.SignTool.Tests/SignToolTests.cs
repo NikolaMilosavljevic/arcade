@@ -14,6 +14,7 @@ using Xunit;
 using Xunit.Abstractions;
 using FluentAssertions;
 using System.Security.Cryptography;
+using Microsoft.DotNet.Build.Tasks.Installers;
 
 namespace Microsoft.DotNet.SignTool.Tests
 {
@@ -445,6 +446,54 @@ namespace Microsoft.DotNet.SignTool.Tests
             string archive = Path.Combine(destinationFolder, relativePath);
             File.WriteAllBytes(archive, ((MemoryStream)content).ToArray());
             return archive;
+        }
+
+        private void ValidateProducedRpmContent(
+            string rpmPackage,
+            (string, string)[] expectedFilesOriginalHashes,
+            string[] signableFiles,
+            string expectedControlFileContent)
+        {
+            string tempDir = Path.Combine(_tmpDir, "verification");
+            Directory.CreateDirectory(tempDir);
+
+            string layout = Path.Combine(tempDir, "layout");
+            Directory.CreateDirectory(layout);
+
+            ZipData.ExtractRpmPayloadContents(rpmPackage, layout);
+
+            // Checks:
+            // Expected files are present
+            // Signed files have hashes different than original
+            foreach ((string targetSystemFilePath, string originalHash) in expectedFilesOriginalHashes)
+            {
+                string layoutFilePath = Path.Combine(layout, targetSystemFilePath);
+                File.Exists(layoutFilePath).Should().BeTrue();
+
+                using MD5 md5 = MD5.Create();
+                using FileStream fileStream = File.OpenRead(layoutFilePath);
+                string newHash = Convert.ToHexString(md5.ComputeHash(fileStream));
+
+                if (signableFiles.Contains(targetSystemFilePath))
+                {
+                    newHash.Should().NotBe(originalHash);
+                }
+                else
+                {
+                    newHash.Should().Be(originalHash);
+                }
+            }
+
+            // Check:
+            // Header payload digest matches the hash of the payload
+            // Header payload digest is different than the hash of the original payload
+            IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = ZipData.GetRpmHeaderEntries(rpmPackage);
+            string compressedPayloadDigest = ((string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.CompressedPayloadDigest).Value)[0].ToString();
+            // TODO:
+            // Implement the checks
+
+            //string controlFileContents = File.ReadAllText(Path.Combine(controlLayout, "control"));
+            //controlFileContents.Should().Be(expectedControlFileContent);
         }
 #endif
         [Fact]
@@ -1367,7 +1416,7 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.rpm"
             string expectedControlFileContent = "Package: test\nVersion: 1.0\nSection: base\nPriority: optional\nArchitecture: all\n";
             expectedControlFileContent += "Maintainer: Arcade <test@example.com>\nInstalled-Size: 49697\nDescription: A simple test package\n This is a simple generated .deb package for testing purposes.\n";
 
-            //ValidateProducedRpmContent(Path.Combine(_tmpDir, "test.rpm"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
+            ValidateProducedRpmContent(Path.Combine(_tmpDir, "test.rpm"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
         }
 #endif
 
