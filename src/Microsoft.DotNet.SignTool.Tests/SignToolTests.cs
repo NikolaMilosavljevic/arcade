@@ -452,7 +452,7 @@ namespace Microsoft.DotNet.SignTool.Tests
             string rpmPackage,
             (string, string)[] expectedFilesOriginalHashes,
             string[] signableFiles,
-            string expectedControlFileContent)
+            string originalUncompressedPayloadChecksum)
         {
             string tempDir = Path.Combine(_tmpDir, "verification");
             Directory.CreateDirectory(tempDir);
@@ -488,12 +488,18 @@ namespace Microsoft.DotNet.SignTool.Tests
             // Header payload digest matches the hash of the payload
             // Header payload digest is different than the hash of the original payload
             IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = ZipData.GetRpmHeaderEntries(rpmPackage);
-            string compressedPayloadDigest = ((string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.CompressedPayloadDigest).Value)[0].ToString();
-            // TODO:
-            // Implement the checks
+            string uncompressedPayloadDigest = ((string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.UncompressedPayloadDigest).Value)[0].ToString();
+            uncompressedPayloadDigest.Should().NotBe(originalUncompressedPayloadChecksum);
 
-            //string controlFileContents = File.ReadAllText(Path.Combine(controlLayout, "control"));
-            //controlFileContents.Should().Be(expectedControlFileContent);
+            using var stream = File.Open(rpmPackage, FileMode.Open);
+            using RpmPackage package = RpmPackage.Read(stream);
+            package.ArchiveStream.Seek(0, SeekOrigin.Begin);
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                byte[] hash = sha256.ComputeHash(package.ArchiveStream);
+                string checksum = Convert.ToHexString(hash).ToLower();
+                checksum.Should().Be(uncompressedPayloadDigest);
+            }
         }
 #endif
         [Fact]
@@ -1413,10 +1419,9 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.rpm"
                 ("usr/local/bin/mscorlib.dll", "B80EEBA2B8616B7C37E49B004D69BBB7")
             };
             string[] signableFiles = ["usr/local/bin/mscorlib.dll"];
-            string expectedControlFileContent = "Package: test\nVersion: 1.0\nSection: base\nPriority: optional\nArchitecture: all\n";
-            expectedControlFileContent += "Maintainer: Arcade <test@example.com>\nInstalled-Size: 49697\nDescription: A simple test package\n This is a simple generated .deb package for testing purposes.\n";
+            string originalUncompressedPayloadChecksum = "216c2a99006d2e14d28a40c0f14a63f6462f533e89789a6f294186e0a0aad3fd";
 
-            ValidateProducedRpmContent(Path.Combine(_tmpDir, "test.rpm"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
+            ValidateProducedRpmContent(Path.Combine(_tmpDir, "test.rpm"), expectedFilesOriginalHashes, signableFiles, originalUncompressedPayloadChecksum);
         }
 #endif
 
