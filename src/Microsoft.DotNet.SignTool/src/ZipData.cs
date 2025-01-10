@@ -623,8 +623,12 @@ namespace Microsoft.DotNet.SignTool
             string[] requireVersions = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireVersion).Value;
             string[] changelogLines = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ChangelogText).Value;
             string[] conflictNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ConflictName).Value;
-            // TODO: Scripts
+
             ITaskItem[] scripts = [];
+            foreach (var scriptTag in new[] { RpmHeaderTag.Prein, RpmHeaderTag.Preun, RpmHeaderTag.Postin, RpmHeaderTag.Postun })
+            {
+                scripts.Append(new TaskItem((string)headerEntries.FirstOrDefault(e => e.Tag == scriptTag).Value));
+            }
 
             // Create RPM package
             CreateRpmPackage createRpmPackageTask = new()
