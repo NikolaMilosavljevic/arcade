@@ -566,7 +566,9 @@ namespace Microsoft.DotNet.SignTool
         private void RepackRpmContainer(TaskLoggingHelper log, string tempDir)
         {
             // Unpack original package - create the layout
-            string layout = Path.Combine(tempDir, Guid.NewGuid().ToString().Split('-')[0]);
+            string workingDir = Path.Combine(tempDir, Guid.NewGuid().ToString().Split('-')[0]);
+            Directory.CreateDirectory(workingDir);
+            string layout = Path.Combine(workingDir, "layout");
             Directory.CreateDirectory(layout);
             ExtractRpmPayloadContents(FileSignInfo.FullPath, layout);
 
@@ -577,7 +579,7 @@ namespace Microsoft.DotNet.SignTool
             }
 
             // Create payload.cpio
-            string payload = Path.Combine(Path.GetDirectoryName(FileSignInfo.FullPath), "payload.cpio");
+            string payload = Path.Combine(workingDir, "payload.cpio");
 
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
@@ -608,14 +610,9 @@ namespace Microsoft.DotNet.SignTool
 
                 // TESTING:
                 // For Windows testing, use static data
-                // Test data:
-                rawPayloadFileKinds = [
-                    new TaskItem("./usr/local/bin/hello: Bourne-Again shell script, ASCII text executable"),
-                    new TaskItem("./usr/local/bin/mscorlib.dll: PE32 executable (DLL) (console) Intel 80386 Mono/.Net assembly, for MS Windows"),
-                    new TaskItem("./usr/local/bin: directory"),
-                    new TaskItem("./usr/local: directory"),
-                    new TaskItem("./usr: directory")
-                    ];
+                string testFile = @"C:\share\sdk.rpm\test.package\test.original.fpm.built\fileKinds.txt";
+                string[] strings = File.ReadAllLines(testFile);
+                rawPayloadFileKinds = strings.Select(s => new TaskItem(s)).ToArray();
             }
 
             IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = GetRpmHeaderEntries(FileSignInfo.FullPath);
@@ -624,10 +621,17 @@ namespace Microsoft.DotNet.SignTool
             string[] changelogLines = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ChangelogText).Value;
             string[] conflictNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.ConflictName).Value;
 
-            ITaskItem[] scripts = [];
+            List<ITaskItem> scripts = [];
             foreach (var scriptTag in new[] { RpmHeaderTag.Prein, RpmHeaderTag.Preun, RpmHeaderTag.Postin, RpmHeaderTag.Postun })
             {
-                scripts.Append(new TaskItem((string)headerEntries.FirstOrDefault(e => e.Tag == scriptTag).Value));
+                string contents = (string)headerEntries.FirstOrDefault(e => e.Tag == scriptTag).Value;
+                if (contents != null)
+                {
+                    string kind = Enum.GetName(scriptTag);
+                    string file = Path.Combine(workingDir, kind);
+                    File.WriteAllText(file, contents);
+                    scripts.Add(new TaskItem(file, new Dictionary<string, string> { { "Kind", kind } }));
+                }
             }
 
             // Create RPM package
@@ -643,7 +647,7 @@ namespace Microsoft.DotNet.SignTool
                 PackageArchitecture = RpmPackageArchitectureToDotNet(headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Architecture).Value.ToString()),
                 Payload = payload,
                 RawPayloadFileKinds = rawPayloadFileKinds,
-                Requires = requireNames != null ? requireNames.Where(t => !t.StartsWith("rpmlib")).Zip(requireVersions, (name, version) => new TaskItem($"{name} {version}")).ToArray() : [],
+                Requires = requireNames != null ? requireNames.Zip(requireVersions, (name, version) => new TaskItem($"{name}", new Dictionary<string, string> { { "Version", version } })).Where(t => !t.ItemSpec.StartsWith("rpmlib")).ToArray() : [],
                 Conflicts = conflictNames != null ? conflictNames.Select(c => new TaskItem(c)).ToArray() : [],
                 OwnedDirectories = ((string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.DirectoryNames).Value).Select(d => new TaskItem(d)).ToArray(),
                 ChangelogLines = changelogLines != null ? changelogLines.Select(c => new TaskItem(c)).ToArray() : [],
@@ -651,7 +655,7 @@ namespace Microsoft.DotNet.SignTool
                 Summary = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Summary).Value.ToString(),
                 Description = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Description).Value.ToString(),
                 PackageUrl = headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.Url).Value.ToString(),
-                Scripts = scripts,
+                Scripts = scripts.ToArray(),
             };
 
             if (!createRpmPackageTask.Execute())
