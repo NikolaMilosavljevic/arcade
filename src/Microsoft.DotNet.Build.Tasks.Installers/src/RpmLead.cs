@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 namespace Microsoft.DotNet.Build.Tasks.Installers
 {
     [StructLayout(LayoutKind.Sequential)]
-    public struct RpmLead
+    internal struct RpmLead
     {
         public string Name { get; set; }
         public byte Major { get; set; }

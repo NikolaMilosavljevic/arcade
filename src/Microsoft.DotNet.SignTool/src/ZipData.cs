@@ -14,8 +14,6 @@ using System.Diagnostics;
 using Microsoft.DotNet.Build.Tasks.Installers;
 using System.Runtime.InteropServices;
 
-
-
 #if NET472
 using System.IO.Packaging;
 #else

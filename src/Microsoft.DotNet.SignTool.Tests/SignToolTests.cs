@@ -484,7 +484,7 @@ namespace Microsoft.DotNet.SignTool.Tests
                 }
             }
 
-            // Check:
+            // Checks:
             // Header payload digest matches the hash of the payload
             // Header payload digest is different than the hash of the original payload
             IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = ZipData.GetRpmHeaderEntries(rpmPackage);

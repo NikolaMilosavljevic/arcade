@@ -511,7 +511,7 @@ namespace Microsoft.DotNet.SignTool
                 {
                     if (isInvalidEmptyCertificate)
                     {
-                        log.LogError($"Deb package {fileName} should have a certificate name.");
+                        log.LogError($"Rpm package {fileName} should have a certificate name.");
                     }
                     if (!IsLinuxSignCertificate(fileName.SignInfo.Certificate))
                     {
