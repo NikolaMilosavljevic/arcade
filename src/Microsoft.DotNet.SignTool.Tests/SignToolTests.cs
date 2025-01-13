@@ -243,7 +243,10 @@ namespace Microsoft.DotNet.SignTool.Tests
             ".py",
             ".pyd",
 
+#if !NETFRAMEWORK
             ".deb",
+            ".rpm",
+#endif
         };
 
         public static IEnumerable<object[]> GetSignableExtensions()
@@ -2446,7 +2449,8 @@ $@"
                 { ".vsix", "Simple.vsix" },
                 { ".nupkg", "Simple.nupkg" },
                 { ".exe", "Simple.exe" },
-                { ".deb", "test.deb" }
+                { ".deb", "test.deb" },
+                { ".rpm", "test.rpm" }
             };
 
             var task = new SignToolTask { BuildEngine = new FakeBuildEngine() };
@@ -2483,7 +2487,8 @@ $@"
                 { ".vsix", ("Simple.vsix", []) },
                 { ".nupkg", ("Simple.nupkg", []) },
                 { ".exe", ("Simple.exe", []) },
-                { ".deb", ("test.deb", [".dll"]) }
+                { ".deb", ("test.deb", [".dll"]) },
+                { ".rpm", ("test.rpm", [".dll"]) }
             };
 
             var task = new SignToolTask { BuildEngine = new FakeBuildEngine() };
