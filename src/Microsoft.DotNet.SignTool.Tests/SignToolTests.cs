@@ -306,8 +306,7 @@ namespace Microsoft.DotNet.SignTool.Tests
         {
             try
             {
-                // TODO: revert this!
-                //Directory.Delete(_tmpDir, recursive: true);
+                Directory.Delete(_tmpDir, recursive: true);
             }
             catch
             {

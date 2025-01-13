@@ -78,10 +78,10 @@ namespace Microsoft.DotNet.SignTool
 #if NET472
                 throw new NotImplementedException("RPM signing is not supported on .NET Framework");
 #else
-                //if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                //{
-                //    throw new NotImplementedException("RPM signing is only supported on Linux platform");
-                //}
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    throw new NotImplementedException("RPM signing is only supported on Linux platform");
+                }
 
                 return ReadRpmContainerEntries(archivePath);
 #endif
@@ -123,10 +123,10 @@ namespace Microsoft.DotNet.SignTool
 #if NET472
                 throw new NotImplementedException("RPM signing is not supported on .NET Framework");
 #else
-                //if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-                //{
-                //    throw new NotImplementedException("RPM signing is only supported on Linux platform");
-                //}
+                if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                {
+                    throw new NotImplementedException("RPM signing is only supported on Linux platform");
+                }
 
                 RepackRpmContainer(log, tempDir);
 #endif
@@ -579,39 +579,14 @@ namespace Microsoft.DotNet.SignTool
             // Create payload.cpio
             string payload = Path.Combine(workingDir, "payload.cpio");
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.' -print  | cpio -H newc -o --quiet > '{payload}'\"", out string _, layout);
-            }
-            else
-            {
-                // TODO: remove this block and if-statement above before sending PR
-
-                // TESTING:
-                // For Windows testing, we will use a Linux-updated payload.cpio file
-                File.Copy(@"C:\share\sdk.rpm\payload.cs.cpio", payload, overwrite: true);
-            }
+            RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.' -print  | cpio -H newc -o --quiet > '{payload}'\"", out string _, layout);
 
             // Collect file types for all files in layout
-            ITaskItem[] rawPayloadFileKinds;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.'  -exec file {{}} \\;\"", out string output, layout);
-                rawPayloadFileKinds =
-                    output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                          .Select(t => new TaskItem(t))
-                          .ToArray();
-            }
-            else
-            {
-                // TODO: remove this block and if-statement above before sending PR
-
-                // TESTING:
-                // For Windows testing, use static data
-                string testFile = @"C:\share\sdk.rpm\test.package\test.original.fpm.built\fileKinds.txt";
-                string[] strings = File.ReadAllLines(testFile);
-                rawPayloadFileKinds = strings.Select(s => new TaskItem(s)).ToArray();
-            }
+            RunExternalProcess("bash", $"-c \"find . -depth ! -wholename '.'  -exec file {{}} \\;\"", out string output, layout);
+            ITaskItem[] rawPayloadFileKinds =
+                output.Split('\n', StringSplitOptions.RemoveEmptyEntries)
+                      .Select(t => new TaskItem(t))
+                      .ToArray();
 
             IReadOnlyList<RpmHeader<RpmHeaderTag>.Entry> headerEntries = GetRpmHeaderEntries(FileSignInfo.FullPath);
             string[] requireNames = (string[])headerEntries.FirstOrDefault(e => e.Tag == RpmHeaderTag.RequireName).Value;
