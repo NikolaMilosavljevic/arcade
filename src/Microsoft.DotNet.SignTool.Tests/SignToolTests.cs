@@ -245,7 +245,6 @@ namespace Microsoft.DotNet.SignTool.Tests
 
 #if !NETFRAMEWORK
             ".deb",
-            ".rpm",
 #endif
         };
 
@@ -1384,7 +1383,7 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.deb"
             ValidateProducedDebContent(Path.Combine(_tmpDir, "test.deb"), expectedFilesOriginalHashes, signableFiles, expectedControlFileContent);
         }
 
-        [Fact]
+        [LinuxOnlyFact]
         public void CheckRpmSigning()
         {
             // List of files to be considered for signing
@@ -2448,8 +2447,7 @@ $@"
                 { ".vsix", "Simple.vsix" },
                 { ".nupkg", "Simple.nupkg" },
                 { ".exe", "Simple.exe" },
-                { ".deb", "test.deb" },
-                { ".rpm", "test.rpm" }
+                { ".deb", "test.deb" }
             };
 
             var task = new SignToolTask { BuildEngine = new FakeBuildEngine() };
@@ -2486,8 +2484,7 @@ $@"
                 { ".vsix", ("Simple.vsix", []) },
                 { ".nupkg", ("Simple.nupkg", []) },
                 { ".exe", ("Simple.exe", []) },
-                { ".deb", ("test.deb", [".dll"]) },
-                { ".rpm", ("test.rpm", [".dll"]) }
+                { ".deb", ("test.deb", [".dll"]) }
             };
 
             var task = new SignToolTask { BuildEngine = new FakeBuildEngine() };
