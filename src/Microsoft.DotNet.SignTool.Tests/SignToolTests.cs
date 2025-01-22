@@ -1755,7 +1755,7 @@ $@"<FilesToSign Include=""{Uri.EscapeDataString(Path.Combine(_tmpDir, "test.rpm"
             });
         }
 
-        [LinuxOnlyFact]
+        [Fact]
         public void CheckRpmSigning()
         {
             // List of files to be considered for signing

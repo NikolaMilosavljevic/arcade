@@ -416,7 +416,7 @@ namespace Microsoft.DotNet.Build.Tasks.Installers
 
             signatureEntries.Add(new(RpmSignatureTag.ReservedSpace, RpmHeaderEntryType.Binary, new ArraySegment<byte>(new byte[4128])));
             RpmHeader<RpmSignatureTag> signature = new(signatureEntries);
-            return new RpmPackage(Lead with { Name = packageName }, signature, header, cpioArchive);
+            return new RpmPackage(Lead with { Name = packageName }, signature, header, cpioArchive, null);
         }
     }
 }

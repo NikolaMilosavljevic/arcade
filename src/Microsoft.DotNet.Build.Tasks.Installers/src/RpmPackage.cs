@@ -12,12 +12,13 @@ using System.Threading.Tasks;
 
 namespace Microsoft.DotNet.Build.Tasks.Installers
 {
-    internal sealed class RpmPackage(RpmLead lead, RpmHeader<RpmSignatureTag> signature, RpmHeader<RpmHeaderTag> header, MemoryStream archiveStream) : IDisposable
+    internal sealed class RpmPackage(RpmLead lead, RpmHeader<RpmSignatureTag> signature, RpmHeader<RpmHeaderTag> header, MemoryStream archiveStream, MemoryStream headerAndPayloadStream) : IDisposable
     {
         public RpmLead Lead { get; set; } = lead;
         public RpmHeader<RpmSignatureTag> Signature { get; set; } = signature;
         public RpmHeader<RpmHeaderTag> Header { get; set; } = header;
         public MemoryStream ArchiveStream { get; set; } = archiveStream;
+        public MemoryStream HeaderAndPayloadStream { get; set; } = headerAndPayloadStream;
 
         public static unsafe RpmPackage Read(Stream stream)
         {
@@ -25,6 +26,7 @@ namespace Microsoft.DotNet.Build.Tasks.Installers
 
             RpmHeader<RpmSignatureTag> signature = RpmHeader<RpmSignatureTag>.Read(stream, RpmSignatureTag.HeaderSignatures);
             stream.AlignReadTo(8);
+            long headerStart = stream.Position;
             RpmHeader<RpmHeaderTag> header = RpmHeader<RpmHeaderTag>.Read(stream, RpmHeaderTag.Immutable);
 
             if (header.Entries.First(e => e.Tag == RpmHeaderTag.PayloadCompressor).Value is not "gzip")
@@ -36,7 +38,11 @@ namespace Microsoft.DotNet.Build.Tasks.Installers
             MemoryStream archiveStream = new();
             gzipStream.CopyTo(archiveStream);
             archiveStream.Position = 0;
-            return new RpmPackage(lead, signature, header, archiveStream);
+
+            stream.Position = headerStart;
+            MemoryStream headerAndPayloadStream = new();
+            stream.CopyTo(headerAndPayloadStream);
+            return new RpmPackage(lead, signature, header, archiveStream, headerAndPayloadStream);
         }
 
         public void WriteTo(Stream stream)

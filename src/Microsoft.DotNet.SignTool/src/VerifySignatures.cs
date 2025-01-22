@@ -19,6 +19,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection.PortableExecutable;
+using Microsoft.DotNet.Build.Tasks.Installers;
 
 namespace Microsoft.DotNet.SignTool
 {
@@ -86,9 +87,67 @@ namespace Microsoft.DotNet.SignTool
 
         internal static SigningStatus IsSignedRpm(TaskLoggingHelper log, string filePath)
         {
-            // RPM signature verification is not yet implemented
-            log.LogMessage(MessageImportance.Low, $"Skipping signature verification of {filePath} - not yet implemented.");
+# if NET472
+            // RPM unpack tooling is not supported on .NET Framework
+            log.LogMessage(MessageImportance.Low, $"Skipping signature verification of {filePath} for .NET Framework");
             return SigningStatus.Unknown;
+# else
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                log.LogMessage(MessageImportance.Low, $"Skipping signature verification of {filePath} for Windows.");
+                return SigningStatus.Unknown;
+            }
+
+            string tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(tempDir);
+
+            try
+            {
+                // Download the Microsoft public key
+                using (Stream stream = client.GetStreamAsync("https://packages.microsoft.com/keys/microsoft.asc").Result)
+                {
+                    using (FileStream fileStream = File.Create($"{tempDir}/microsoft.asc"))
+                    {
+                        stream.CopyTo(fileStream);
+                    }
+                }
+
+                RunCommand($"gpg --import {tempDir}/microsoft.asc");
+
+                string headerAndPayload = Path.Combine(tempDir, "headerAndPayload");
+                string pgpHeaderAndPayload = Path.Combine(tempDir, "pgpHeaderAndPayload");
+
+                using var rpmPackageStream = File.Open(filePath, FileMode.Open);
+                using RpmPackage rpmPackage = RpmPackage.Read(rpmPackageStream);
+                using (var headerAndPayloadStream = File.Create(headerAndPayload))
+                {
+                    rpmPackage.HeaderAndPayloadStream.Seek(0, SeekOrigin.Begin);
+                    rpmPackage.HeaderAndPayloadStream.CopyTo(headerAndPayloadStream);
+                }
+
+                ArraySegment<byte> pgpSignature = (ArraySegment<byte>)rpmPackage.Signature.Entries.FirstOrDefault(e => e.Tag == RpmSignatureTag.PgpHeaderAndPayload).Value;
+                File.WriteAllBytes(pgpHeaderAndPayload, [.. pgpSignature]);
+
+                // 'gpg --verify' will return a non-zero exit code if the signature is invalid
+                // We don't want to throw an exception in that case, so we pass throwOnError: false
+                string output = RunCommand($"gpg --verify {pgpHeaderAndPayload} {headerAndPayload}", throwOnError: false);
+                if (output.Contains("Good signature"))
+                {
+                    return SigningStatus.Signed;
+                }
+                return SigningStatus.NotSigned;
+
+            }
+            catch (Exception e)
+            {
+                log.LogMessage(MessageImportance.Low, $"Failed to verify signature of {filePath} with the following error: {e}");
+                return SigningStatus.NotSigned;
+            }
+            finally
+            {
+                Directory.Delete(tempDir, true);
+            }
+# endif
         }
 
         internal static SigningStatus IsSignedPowershellFile(string filePath)
